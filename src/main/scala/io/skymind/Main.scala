@@ -1,8 +1,7 @@
 package io.skymind
 
-import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator
-import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
+import org.deeplearning4j.datasets.iterator.impl.{EmnistDataSetIterator, MnistDataSetIterator}
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers._
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
@@ -14,10 +13,12 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object Main extends App {
   val batchSize = 256
-  val nClasses = 10
+  val emnistSet = EmnistDataSetIterator.Set.BALANCED
+  val trainData = new EmnistDataSetIterator(emnistSet, batchSize, true, 42)
+  val nClasses = EmnistDataSetIterator.numLabels(emnistSet)
 
   val conf = new NeuralNetConfiguration.Builder()
-    .updater(new AMSGrad(0.01))
+    .updater(new AMSGrad(0.001))
     .l2(5e-4)
     .weightInit(WeightInit.XAVIER)
     .activation(Activation.RELU).list(
@@ -34,18 +35,18 @@ object Main extends App {
   val model = new MultiLayerNetwork(conf)
   model.setListeners(new PerformanceListener(10, true))
   model.init()
-
-  val trainData = new MnistDataSetIterator(batchSize, true, 42)
-
   println(model.summary)
 
   val start = System.nanoTime()
   model.fit(trainData, 3)
   val end = System.nanoTime()
 
-  val testData = new MnistDataSetIterator(batchSize, false, 42)
+  val testData = new EmnistDataSetIterator(emnistSet, batchSize, false, 42)
   val eval = model.evaluate(testData)
   println(eval)
+
+  val eval2 = model.evaluate(testData)
+  println(eval2)
 
   println("Took " + ((end - start) / 1000000000) + " seconds")
 }
