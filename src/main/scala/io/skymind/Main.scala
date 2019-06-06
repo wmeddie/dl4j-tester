@@ -11,11 +11,7 @@ import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers.{SubsamplingLayer, _}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
-import org.deeplearning4j.optimize.listeners.PerformanceListener
-import org.deeplearning4j.parallelism.{ParallelInference, ParallelWrapper}
 import org.nd4j.linalg.activations.Activation
-import org.nd4j.linalg.api.memory.conf.WorkspaceConfiguration
-import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
@@ -46,7 +42,9 @@ object Main extends App {
   println(s"Time for inference: ${stopWatch.getTime(TimeUnit.MICROSECONDS)} microseconds")
 
   println("Training...")
-  val start = System.nanoTime()
+  stopWatch.reset()
+
+  stopWatch.start()
 
   val epochs = 3
   for (i <- 0 to epochs) {
@@ -54,45 +52,41 @@ object Main extends App {
     model.fit(trainData)
   }
 
-  val end = System.nanoTime()
+  stopWatch.stop()
 
-  val seconds = (end - start) / 1000000000.0
-  println(s"Training took $seconds seconds")
-  println(s"(${seconds.toDouble / epochs.toDouble} per epoch)")
+  println(s"Training took ${stopWatch.getTime(TimeUnit.SECONDS)} seconds")
+  println(s"(${stopWatch.getTime(TimeUnit.SECONDS).toDouble / epochs.toDouble} per epoch)")
 
   //private val inference: ParallelInference = new ParallelInference.Builder(model).build()
 
   val inferenceCount = 100000
 
-  val inferenceStart = System.nanoTime()
   val inferenceTimes = new Array[Long](inferenceCount)
 
   val outputAdapter: OutputAdapter[Array[Int]] = new ArgmaxAdapter()
 
-  // warmup
-  for (i <- 0 until 1000) {
+  // warmup some caches
+  for (_ <- 0 until 100) {
     val array = Nd4j.rand(Array(1, 28 * 28))
 
-    val result = model.output(array, null, null, outputAdapter)
+    model.output(array, null, null, outputAdapter)
   }
 
   for (i <- 0 until inferenceCount) {
+    stopWatch.reset()
+
     val array = Nd4j.rand(Array(1, 28 * 28))
 
-    val outputStart = System.nanoTime()
+    stopWatch.start()
     val result = model.output(array, null, null, outputAdapter)
-    val outputEnd = System.nanoTime()
+    stopWatch.stop()
 
-    inferenceTimes(i) = outputEnd - outputStart
+    inferenceTimes(i) = stopWatch.getNanoTime
 
     assert(result != null)
   }
 
   val sortedTimes = inferenceTimes.sorted
-
-  val inferenceEnd = System.nanoTime()
-  val inferenceSeconds = (inferenceEnd - inferenceStart) / 1000000000.0
-  println(s"Inference took $inferenceSeconds seconds")
 
   val inferenceMean = sortedTimes.sum / sortedTimes.length
   val inferenceMin = sortedTimes.min
