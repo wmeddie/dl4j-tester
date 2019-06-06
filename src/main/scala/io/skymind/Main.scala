@@ -7,7 +7,8 @@ import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator
 import org.deeplearning4j.nn.adapters.ArgmaxAdapter
 import org.deeplearning4j.nn.api.OutputAdapter
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
-import org.deeplearning4j.nn.conf.layers._
+import org.deeplearning4j.nn.conf.inputs.InputType
+import org.deeplearning4j.nn.conf.layers.{SubsamplingLayer, _}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.PerformanceListener
@@ -19,6 +20,7 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.AMSGrad
+import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object Main extends App {
@@ -28,7 +30,7 @@ object Main extends App {
   val testData = new MnistDataSetIterator(batchSize, false, 42)
 
 
-  val model = makeDl4JModel()
+  val model = makeLeNetDl4JModel()
 
   //model.addListeners(new PerformanceListener(10, true))
 
@@ -60,12 +62,21 @@ object Main extends App {
 
   //private val inference: ParallelInference = new ParallelInference.Builder(model).build()
 
+  val inferenceCount = 100000
+
   val inferenceStart = System.nanoTime()
-  val inferenceTimes = new Array[Long](1000000)
+  val inferenceTimes = new Array[Long](inferenceCount)
 
   val outputAdapter: OutputAdapter[Array[Int]] = new ArgmaxAdapter()
 
-  for (i <- 0 until 1000000) {
+  // warmup
+  for (i <- 0 until 1000) {
+    val array = Nd4j.rand(Array(1, 28 * 28))
+
+    val result = model.output(array, null, null, outputAdapter)
+  }
+
+  for (i <- 0 until inferenceCount) {
     val array = Nd4j.rand(Array(1, 28 * 28))
 
     val outputStart = System.nanoTime()
@@ -89,7 +100,7 @@ object Main extends App {
 
   println(s"Min (${inferenceMin / 1000} µs per sample)")
   println(s"Mean (${inferenceMean / 1000} µs per sample)")
-  println(s"Median (${sortedTimes(inferenceTimes.length / 2) / 1000} µs per sample")
+  println(s"Median (${sortedTimes(inferenceTimes.length / 2) / 1000} µs per sample)")
   println(s"90 Percentile (${percentile(90)(sortedTimes) / 1000} µs per sample)")
   println(s"99 Percentile (${percentile(99)(sortedTimes) / 1000} µs per sample)")
   println(s"99.9 Percentile (${percentile(99.9)(sortedTimes) / 1000} µs per sample)")
@@ -99,27 +110,49 @@ object Main extends App {
   println(s"99.99999 Percentile (${percentile(99.99999)(sortedTimes) / 1000} µs per sample)")
   println(s"Max (${inferenceMax / 1000} µs per sample)")
 
-  /*
-  for (i <- 0 to 25) {
-    val start = System.nanoTime()
+  def makeLeNetDl4JModel() = {
+    val conf = new NeuralNetConfiguration.Builder()
+      .seed(42)
+      .activation(Activation.IDENTITY)
+      .weightInit(WeightInit.XAVIER)
+      .l2(5e-4)
+      .updater(new AMSGrad(0.004))
+      .list(
+      new ConvolutionLayer.Builder(Array[Int](5, 5), Array[Int](1, 1))
+        .name("cnn1")
+        .nIn(1)
+        .nOut(20)
+        .build(),
+      new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX, Array[Int](2, 2), Array[Int](2, 2))
+        .name("maxpool1")
+        .build(),
+      new ConvolutionLayer.Builder(Array[Int](5, 5), Array[Int](1, 1))
+        .name("cnn2")
+        .nOut(50)
+        .build(),
+      new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX, Array[Int](2, 2), Array[Int](2, 2))
+        .name("maxpool2")
+        .build(),
+      new DenseLayer.Builder()
+        .name("ffn1")
+        .activation(Activation.RELU)
+        .nOut(500)
+        .build(),
+      new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+        .name("output")
+        .nOut(10)
+        .activation(Activation.SOFTMAX) // radial basis function required
+        .build())
+      .setInputType(InputType.convolutionalFlat(28, 28, 1))
+      .build()
 
-    trainData.foreach { ds =>
-      model.fit(ds)
-    }
+    val model = new MultiLayerNetwork(conf)
+    model.init()
 
-    /*val evaluation = new Evaluation()
-    testData.foreach { ds =>
-      evaluation.eval(ds.getLabels, model.output(ds.getFeatures))
-    }
-    println("Eval ACC: " + evaluation.accuracy())
-    */
-    val end = System.nanoTime()
-
-    println("Took " + ((end - start) / 1000000000.0) + " seconds")
+    model
   }
-  */
 
-  def makeDl4JModel() = {
+  def makeSimpleDl4JModel() = {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(42) // include a random seed for reproducibility
       .updater(new AMSGrad(0.004)) //specify the updating method and learning rate.
