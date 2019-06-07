@@ -51,9 +51,12 @@ object Main extends App {
   println(s"Training took ${stopWatch.getTime(TimeUnit.SECONDS)} seconds")
   println(s"(${stopWatch.getTime(TimeUnit.SECONDS).toDouble / epochs.toDouble} per epoch)")
 
+  println("")
+  println("Measuring inference performance...")
+
   //private val inference: ParallelInference = new ParallelInference.Builder(model).build()
 
-  val inferenceCount = 100000
+  val inferenceCount = 1000000
   val inferenceTimes = new Array[Long](inferenceCount)
   val outputAdapter: OutputAdapter[Int] = new SimpleArgMaxAdapter()
 
@@ -72,7 +75,7 @@ object Main extends App {
 
     inferenceTimes(i) = stopWatch.getNanoTime
 
-    assert(result > 0)
+    assert(result >= 0)
   }
 
   val sortedTimes = inferenceTimes.sorted
