@@ -1,5 +1,6 @@
 package io.skymind
 
+import java.io.{File, PrintWriter}
 import java.util.concurrent.TimeUnit
 
 import org.apache.commons.lang3.time.StopWatch
@@ -12,12 +13,15 @@ import org.deeplearning4j.nn.conf.layers.{SubsamplingLayer, _}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.nd4j.linalg.activations.Activation
+import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.AMSGrad
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
+
+import scala.io.Source
 
 object Main extends App {
   val batchSize = 256
@@ -28,26 +32,16 @@ object Main extends App {
 
   val model = makeLeNetDl4JModel()
 
-  //model.addListeners(new PerformanceListener(10, true))
-
   println(model.summary)
 
   val sample = Nd4j.zeros(1L, 28L * 28L)
   model.output(sample) // warmup
 
-  val stopWatch: StopWatch = StopWatch.createStarted()
-  model.output(sample)
-  stopWatch.stop()
-
-  println(s"Time for inference: ${stopWatch.getTime(TimeUnit.MICROSECONDS)} microseconds")
-
   println("Training...")
-  stopWatch.reset()
+  val stopWatch: StopWatch = StopWatch.createStarted()
 
-  stopWatch.start()
-
-  val epochs = 3
-  for (i <- 0 to epochs) {
+  val epochs = 1
+  for (i <- 0 until epochs) {
     println(s"Epoch $i")
     model.fit(trainData)
   }
@@ -60,22 +54,17 @@ object Main extends App {
   //private val inference: ParallelInference = new ParallelInference.Builder(model).build()
 
   val inferenceCount = 100000
-
   val inferenceTimes = new Array[Long](inferenceCount)
+  val outputAdapter: OutputAdapter[Int] = new SimpleArgMaxAdapter()
 
-  val outputAdapter: OutputAdapter[Array[Int]] = new ArgmaxAdapter()
-
+  val array = Nd4j.zeros(1L, 28 * 28L)
   // warmup some caches
   for (_ <- 0 until 100) {
-    val array = Nd4j.rand(Array(1, 28 * 28))
-
     model.output(array, null, null, outputAdapter)
   }
 
   for (i <- 0 until inferenceCount) {
     stopWatch.reset()
-
-    val array = Nd4j.rand(Array(1, 28 * 28))
 
     stopWatch.start()
     val result = model.output(array, null, null, outputAdapter)
@@ -83,7 +72,7 @@ object Main extends App {
 
     inferenceTimes(i) = stopWatch.getNanoTime
 
-    assert(result != null)
+    assert(result > 0)
   }
 
   val sortedTimes = inferenceTimes.sorted
@@ -103,6 +92,8 @@ object Main extends App {
   println(s"99.9999 Percentile (${percentile(99.9999)(sortedTimes) / 1000} µs per sample)")
   println(s"99.99999 Percentile (${percentile(99.99999)(sortedTimes) / 1000} µs per sample)")
   println(s"Max (${inferenceMax / 1000} µs per sample)")
+
+  new PrintWriter("results.csv") { write(sortedTimes.mkString("\n")); close() }
 
   def makeLeNetDl4JModel() = {
     val conf = new NeuralNetConfiguration.Builder()
@@ -134,7 +125,7 @@ object Main extends App {
         .build(),
       new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
         .name("output")
-        .nOut(10)
+        .nOut(nClasses)
         .activation(Activation.SOFTMAX) // radial basis function required
         .build())
       .setInputType(InputType.convolutionalFlat(28, 28, 1))
@@ -160,7 +151,7 @@ object Main extends App {
           .build(),
         new DenseLayer.Builder()
           .nIn(768)
-          .nOut(10)
+          .nOut(nClasses)
           .activation(Activation.SOFTMAX)
           .weightInit(WeightInit.XAVIER)
           .build(),
@@ -191,5 +182,13 @@ object Main extends App {
 
     val k = math.ceil((seq.length - 1) * (p / 100.0)).toInt
     seq(k)
+  }
+
+  class SimpleArgMaxAdapter extends OutputAdapter[Int] {
+
+    override def apply(outputs: INDArray*): Int = {
+        val array = outputs(0)
+        Nd4j.argMax(array, Integer.MAX_VALUE).getDouble(0L).toInt
+    }
   }
 }
