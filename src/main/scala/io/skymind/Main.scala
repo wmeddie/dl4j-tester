@@ -1,11 +1,10 @@
 package io.skymind
 
-import java.io.{File, PrintWriter}
+import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
 import org.apache.commons.lang3.time.StopWatch
 import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator
-import org.deeplearning4j.nn.adapters.ArgmaxAdapter
 import org.deeplearning4j.nn.api.OutputAdapter
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.inputs.InputType
@@ -20,8 +19,6 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.AMSGrad
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
-
-import scala.io.Source
 
 object Main extends App {
   val batchSize = 256
