@@ -20,82 +20,93 @@ import org.nd4j.linalg.learning.config.AMSGrad
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
-object Main extends App {
+object Main {
   val batchSize = 256
   val nClasses = 10
-  val trainData = new MnistDataSetIterator(batchSize, true, 42)
-  val testData = new MnistDataSetIterator(batchSize, false, 42)
 
+  def main(args: Array[String]): Unit = {
+    Nd4j.getMemoryManager.togglePeriodicGc(false)
 
-  val model = makeLeNetDl4JModel()
+    val trainData = new MnistDataSetIterator(batchSize, true, 42)
+    //val testData = new MnistDataSetIterator(batchSize, false, 42)
 
-  println(model.summary)
+    //val model = makeLeNetDl4JModel()
+    val model = makeSimpleDl4JModel()
 
-  val sample = Nd4j.zeros(1L, 28L * 28L)
-  model.output(sample) // warmup
+    println(model.summary)
 
-  println("Training...")
-  val stopWatch: StopWatch = StopWatch.createStarted()
+    val sample = Nd4j.zeros(1L, 28L * 28L)
+    model.output(sample) // warmup
 
-  val epochs = 1
-  for (i <- 0 until epochs) {
-    println(s"Epoch $i")
-    model.fit(trainData)
-  }
+    println("Training...")
+    val stopWatch: StopWatch = StopWatch.createStarted()
 
-  stopWatch.stop()
+    val epochs = 1
+    for (i <- 0 until epochs) {
+      println(s"Epoch $i")
+      model.fit(trainData)
+    }
 
-  println(s"Training took ${stopWatch.getTime(TimeUnit.SECONDS)} seconds")
-  println(s"(${stopWatch.getTime(TimeUnit.SECONDS).toDouble / epochs.toDouble} per epoch)")
-
-  println("")
-  println("Measuring inference performance...")
-
-  //private val inference: ParallelInference = new ParallelInference.Builder(model).build()
-
-  val inferenceCount = 1000000
-  val inferenceTimes = new Array[Long](inferenceCount)
-  val outputAdapter: OutputAdapter[Int] = new SimpleArgMaxAdapter()
-
-  val array = Nd4j.zeros(1L, 28 * 28L)
-  // warmup some caches
-  for (_ <- 0 until 100) {
-    model.output(array, null, null, outputAdapter)
-  }
-
-  for (i <- 0 until inferenceCount) {
-    stopWatch.reset()
-
-    stopWatch.start()
-    val result = model.output(array, null, null, outputAdapter)
     stopWatch.stop()
 
-    inferenceTimes(i) = stopWatch.getNanoTime
+    println(s"Training took ${stopWatch.getTime(TimeUnit.SECONDS)} seconds")
+    println(s"(${stopWatch.getTime(TimeUnit.SECONDS).toDouble / epochs.toDouble} per epoch)")
 
-    assert(result >= 0)
+    println()
+    println("Measuring inference performance...")
+
+    val inferenceCount = 1000000
+    val inferenceTimes = new Array[Long](inferenceCount)
+    val outputAdapter: OutputAdapter[Int] = new SimpleArgMaxAdapter()
+
+    val array = Nd4j.zeros(1L, 28 * 28L)
+
+    // warmup some caches
+    for (_ <- 0 until 100) {
+      model.output(array, null, null, outputAdapter)
+    }
+
+    for (i <- 0 until inferenceCount) {
+      stopWatch.reset()
+
+      stopWatch.start()
+      val result = model.output(array, null, null, outputAdapter)
+      stopWatch.stop()
+
+      inferenceTimes(i) = stopWatch.getNanoTime
+
+      assert(result >= 0)
+    }
+
+    val sortedTimes = inferenceTimes.sorted
+
+    val inferenceMean = sortedTimes.sum / sortedTimes.length
+    val inferenceMin = sortedTimes.min
+    val inferenceMax = sortedTimes.max
+    val oneNine = percentile(90)(sortedTimes)
+    val twoNines = percentile(99)(sortedTimes)
+    val threeNines = percentile(99.9)(sortedTimes)
+    val fourNines = percentile(99.99)(sortedTimes)
+    val fiveNines = percentile(99.999)(sortedTimes)
+    val sixNines = percentile(99.9999)(sortedTimes)
+
+    println(s"Min (${inferenceMin / 1000000.0} ms per sample)")
+    println(s"Mean (${inferenceMean / 1000000.0} ms per sample)")
+    println(s"Median (${sortedTimes(inferenceTimes.length / 2) / 1000000.0} ms per sample)")
+    println(s"90 Percentile (${oneNine / 1000000.0} ms per sample)")
+    println(s"99 Percentile (${twoNines / 1000000.0} ms per sample)")
+    println(s"99.9 Percentile (${threeNines / 1000000.0} ms per sample)")
+    println(s"99.99 Percentile (${fourNines / 1000000.0} ms per sample)")
+    println(s"99.999 Percentile (${fiveNines / 1000000.0} ms per sample)")
+    println(s"99.9999 Percentile (${sixNines / 1000000.0} ms per sample)")
+    println(s"Max (${inferenceMax / 1000000.0} ms per sample)")
+
+    new PrintWriter("results.csv") {
+      write(sortedTimes.mkString("\n")); close()
+    }
   }
 
-  val sortedTimes = inferenceTimes.sorted
-
-  val inferenceMean = sortedTimes.sum / sortedTimes.length
-  val inferenceMin = sortedTimes.min
-  val inferenceMax = sortedTimes.max
-
-  println(s"Min (${inferenceMin / 1000} µs per sample)")
-  println(s"Mean (${inferenceMean / 1000} µs per sample)")
-  println(s"Median (${sortedTimes(inferenceTimes.length / 2) / 1000} µs per sample)")
-  println(s"90 Percentile (${percentile(90)(sortedTimes) / 1000} µs per sample)")
-  println(s"99 Percentile (${percentile(99)(sortedTimes) / 1000} µs per sample)")
-  println(s"99.9 Percentile (${percentile(99.9)(sortedTimes) / 1000} µs per sample)")
-  println(s"99.99 Percentile (${percentile(99.99)(sortedTimes) / 1000} µs per sample)")
-  println(s"99.999 Percentile (${percentile(99.999)(sortedTimes) / 1000} µs per sample)")
-  println(s"99.9999 Percentile (${percentile(99.9999)(sortedTimes) / 1000} µs per sample)")
-  println(s"99.99999 Percentile (${percentile(99.99999)(sortedTimes) / 1000} µs per sample)")
-  println(s"Max (${inferenceMax / 1000} µs per sample)")
-
-  new PrintWriter("results.csv") { write(sortedTimes.mkString("\n")); close() }
-
-  def makeLeNetDl4JModel() = {
+  private def makeLeNetDl4JModel() = {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(42)
       .activation(Activation.IDENTITY)
@@ -137,7 +148,7 @@ object Main extends App {
     model
   }
 
-  def makeSimpleDl4JModel() = {
+  private def makeSimpleDl4JModel() = {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(42) // include a random seed for reproducibility
       .updater(new AMSGrad(0.004)) //specify the updating method and learning rate.
@@ -177,7 +188,7 @@ object Main extends App {
     ret.reverse.toArray
   }
 
-  def percentile(p: Double)(seq: Seq[Long]) = {
+  private def percentile(p: Double)(seq: Seq[Long]) = {
     assert(seq.min == seq.head && seq.max == seq.last)
 
     val k = math.ceil((seq.length - 1) * (p / 100.0)).toInt
