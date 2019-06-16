@@ -11,7 +11,6 @@ import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers.{SubsamplingLayer, _}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
-import org.deeplearning4j.optimize.listeners.PerformanceListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
@@ -111,7 +110,8 @@ object Main {
   }
 
 
-  private def makeLeNetDl4JModel() = {
+  //noinspection ScalaUnusedSymbol
+  private def makeLeNetDl4JModel(): MultiLayerNetwork = {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(42)
       .activation(Activation.IDENTITY)
@@ -153,7 +153,7 @@ object Main {
     model
   }
 
-  private def makeSimpleDl4JModel() = {
+  private def makeSimpleDl4JModel(): MultiLayerNetwork = {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(42) // include a random seed for reproducibility
       .updater(new AMSGrad(0.004)) //specify the updating method and learning rate.
