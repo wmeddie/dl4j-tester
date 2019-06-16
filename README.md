@@ -62,15 +62,52 @@ Measuring inference performance...
 
 ... GC logs here ...
 
-Min (0.041094 ms per sample)
-Mean (0.05349 ms per sample)
-Median (0.050756 ms per sample)
-90 Percentile (0.061588 ms per sample)
-99 Percentile (0.099401 ms per sample)
-99.9 Percentile (0.171543 ms per sample)
-99.99 Percentile (1.084526 ms per sample)
-99.999 Percentile (2.312762 ms per sample)
-99.9999 Percentile (2.891824 ms per sample)
-Max (2.891824 ms per sample)
+Measuring inference performance...
+Min (0.040759 ms per sample)
+Mean (0.054871 ms per sample)
+Median (0.051017 ms per sample)
+90 Percentile (0.067636 ms per sample)
+99 Percentile (0.110351 ms per sample)
+99.9 Percentile (0.200953 ms per sample)
+99.99 Percentile (1.069422 ms per sample)
+99.999 Percentile (2.681949 ms per sample)
+99.9999 Percentile (9.501203 ms per sample)
+Max (9.501203 ms per sample)
+Average 18224.56306610049 inferences per second
+Took 55 seconds for 1000000 inferences (18181.81818181818 inferences per second)
 
 ```
+
+A python script (`measure_keras.py`) is also provided that does more/less the same thing for comparison:
+
+ ```
+ Measuring training performance...
+ 
+ ...
+ 
+ Epoch 1/3
+ 2019-06-16 22:01:06.268263: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+ 60000/60000 [==============================] - 4s 59us/step - loss: 0.2379 - acc: 0.9260
+ Epoch 2/3
+ 60000/60000 [==============================] - 3s 54us/step - loss: 0.1128 - acc: 0.9660
+ Epoch 3/3
+ 60000/60000 [==============================] - 3s 53us/step - loss: 0.0847 - acc: 0.9737
+ Training took 10.215353036066517 seconds
+ (3.405117678688839 per epoch)
+
+ Measuring inference performance...
+ Min (0.215769 ms per sample)
+ Mean (0.289890 ms per sample)
+ Median (0.283223 ms per sample)
+ 90 Percentile (0.328217 ms per sample)
+ 99 Percentile (0.381326 ms per sample)
+ 99.9 Percentile (0.642981 ms per sample)
+ 99.99 Percentile (1.000424 ms per sample)
+ 99.999 Percentile (1.208193 ms per sample)
+ 99.9999 Percentile (1.795472 ms per sample)
+ Max (1.795472 ms per sample)
+ Average 3449.585665 inference per second
+ Took 291.459642 seconds for 1000000.000000 inferences (3431.006758 inferences per second)
+
+ 
+ ```
