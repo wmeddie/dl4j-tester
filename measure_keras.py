@@ -132,21 +132,21 @@ if __name__ == '__main__':
     six_nines = percentile(99.9999, inference_times)
     s2ms = 1000.0
 
-    print("Min (%s ms per sample)" % (str(inference_min * s2ms)))
-    print("Mean (%s ms per sample)" % (str(inference_mean * s2ms)))
-    print("Median (%s ms per sample)" % (str(inference_median * s2ms)))
-    print("90 Percentile (%s ms per sample)" % (str(one_nine * s2ms)))
-    print("99 Percentile (%s ms per sample)" % (str(one_nine * s2ms)))
-    print("99.9 Percentile (%s ms per sample)" % (str(one_nine * s2ms)))
-    print("99.99 Percentile (%s ms per sample)" % (str(one_nine * s2ms)))
-    print("99.999 Percentile (%s ms per sample)" % (str(one_nine * s2ms)))
-    print("99.9999 Percentile (%s ms per sample)" % (str(one_nine * s2ms)))
-    print("Max (%s ms per sample)" % (str(inference_max * s2ms)))
-    print("Average %s inference per second" % (str(1 / inference_mean)))
-    print("Took %s seconds for %s inferences (%s inferences per second)" % (
-        str(end - start),
-        str(inference_count),
-        str(float(inference_count) / inference_count)))
+    print("Min (%f ms per sample)" % (inference_min * s2ms))
+    print("Mean (%f ms per sample)" % (inference_mean * s2ms))
+    print("Median (%f ms per sample)" % (inference_median * s2ms))
+    print("90 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("99 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("99.9 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("99.99 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("99.999 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("99.9999 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("Max (%f ms per sample)" % (inference_max * s2ms))
+    print("Average %f inference per second" % (1 / inference_mean))
+    print("Took %f seconds for %f inferences (%f inferences per second)" % (
+        end - start,
+        inference_count,
+        float(inference_count) / (end - start)))
 
     out = open("results_keras.csv", "w")
     out.writelines(map(lambda x: str(x), inference_times))
