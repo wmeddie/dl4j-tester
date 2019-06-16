@@ -42,7 +42,9 @@ object Main {
 
     println("Measuring inference performance...")
 
+    val timer = StopWatch.createStarted()
     val inferenceTimes = measureInference(model)
+    val measurementTime = timer.getTime(TimeUnit.SECONDS)
 
     val sortedTimes = inferenceTimes.sorted
     val inferenceMean = sortedTimes.sum / sortedTimes.length
@@ -55,6 +57,7 @@ object Main {
     val fiveNines = percentile(99.999, sortedTimes)
     val sixNines = percentile(99.9999, sortedTimes)
     val ns2ms = 1000000.0
+    val ns2s = ns2ms * 1000.0
 
     println(s"Min (${inferenceMin / ns2ms} ms per sample)")
     println(s"Mean (${inferenceMean / ns2ms} ms per sample)")
@@ -66,6 +69,8 @@ object Main {
     println(s"99.999 Percentile (${fiveNines / ns2ms} ms per sample)")
     println(s"99.9999 Percentile (${sixNines / ns2ms} ms per sample)")
     println(s"Max (${inferenceMax / ns2ms} ms per sample)")
+    println(s"Average ${ns2s / inferenceMean} inferences per second")
+    println(s"Took $measurementTime seconds for $inferenceCount inferences (${inferenceCount.toDouble / measurementTime} inferences per second)")
 
     new PrintWriter("results.csv") {
       write(sortedTimes.mkString("\n"))
