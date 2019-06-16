@@ -11,54 +11,83 @@ import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers.{SubsamplingLayer, _}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
+import org.deeplearning4j.optimize.listeners.PerformanceListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.AMSGrad
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object Main {
+  val epochs = 3
   val batchSize = 256
   val nClasses = 10
+  val inferenceCount = 1000000
 
   def main(args: Array[String]): Unit = {
+    // This is great when using Dl4j in a notebook, but not useful here.
     Nd4j.getMemoryManager.togglePeriodicGc(false)
-
-    val trainData = new MnistDataSetIterator(batchSize, true, 42)
-    //val testData = new MnistDataSetIterator(batchSize, false, 42)
 
     //val model = makeLeNetDl4JModel()
     val model = makeSimpleDl4JModel()
 
+    println("Using model:")
     println(model.summary)
+    println("Measuring training performance...")
 
-    val sample = Nd4j.zeros(1L, 28L * 28L)
-    model.output(sample) // warmup
+    val trainTime = measureTraining(model)
 
-    println("Training...")
-    val stopWatch: StopWatch = StopWatch.createStarted()
+    println(s"Training took $trainTime seconds")
+    println(s"(${trainTime.toDouble / epochs.toDouble} per epoch)")
 
-    val epochs = 1
-    for (i <- 0 until epochs) {
-      println(s"Epoch $i")
-      model.fit(trainData)
-    }
-
-    stopWatch.stop()
-
-    println(s"Training took ${stopWatch.getTime(TimeUnit.SECONDS)} seconds")
-    println(s"(${stopWatch.getTime(TimeUnit.SECONDS).toDouble / epochs.toDouble} per epoch)")
-
-    println()
     println("Measuring inference performance...")
 
-    val inferenceCount = 1000000
+    val inferenceTimes = measureInference(model)
+
+    val sortedTimes = inferenceTimes.sorted
+    val inferenceMean = sortedTimes.sum / sortedTimes.length
+    val inferenceMin = sortedTimes.min
+    val inferenceMax = sortedTimes.max
+    val oneNine = percentile(90, sortedTimes)
+    val twoNines = percentile(99, sortedTimes)
+    val threeNines = percentile(99.9, sortedTimes)
+    val fourNines = percentile(99.99, sortedTimes)
+    val fiveNines = percentile(99.999, sortedTimes)
+    val sixNines = percentile(99.9999, sortedTimes)
+    val ns2ms = 1000000.0
+
+    println(s"Min (${inferenceMin / ns2ms} ms per sample)")
+    println(s"Mean (${inferenceMean / ns2ms} ms per sample)")
+    println(s"Median (${sortedTimes(inferenceTimes.length / 2) / ns2ms} ms per sample)")
+    println(s"90 Percentile (${oneNine / ns2ms} ms per sample)")
+    println(s"99 Percentile (${twoNines / ns2ms} ms per sample)")
+    println(s"99.9 Percentile (${threeNines / ns2ms} ms per sample)")
+    println(s"99.99 Percentile (${fourNines / ns2ms} ms per sample)")
+    println(s"99.999 Percentile (${fiveNines / ns2ms} ms per sample)")
+    println(s"99.9999 Percentile (${sixNines / ns2ms} ms per sample)")
+    println(s"Max (${inferenceMax / ns2ms} ms per sample)")
+
+    new PrintWriter("results.csv") {
+      write(sortedTimes.mkString("\n"))
+      close()
+    }
+  }
+
+  private def measureTraining(model: MultiLayerNetwork): Long = {
+    val trainData = new MnistDataSetIterator(batchSize, true, 42)
+    //val testData = new MnistDataSetIterator(batchSize, false, 42)
+
+    val stopWatch: StopWatch = StopWatch.createStarted()
+    model.fit(trainData, epochs)
+
+    stopWatch.getTime(TimeUnit.SECONDS)
+  }
+
+  private def measureInference(model: MultiLayerNetwork): Array[Long] = {
+    val stopWatch = new StopWatch()
     val inferenceTimes = new Array[Long](inferenceCount)
     val outputAdapter: OutputAdapter[Int] = new SimpleArgMaxAdapter()
-
     val array = Nd4j.zeros(1L, 28 * 28L)
 
     // warmup some caches
@@ -73,38 +102,14 @@ object Main {
       val result = model.output(array, null, null, outputAdapter)
       stopWatch.stop()
 
-      inferenceTimes(i) = stopWatch.getNanoTime
-
       assert(result >= 0)
+
+      inferenceTimes(i) = stopWatch.getNanoTime
     }
 
-    val sortedTimes = inferenceTimes.sorted
-
-    val inferenceMean = sortedTimes.sum / sortedTimes.length
-    val inferenceMin = sortedTimes.min
-    val inferenceMax = sortedTimes.max
-    val oneNine = percentile(90)(sortedTimes)
-    val twoNines = percentile(99)(sortedTimes)
-    val threeNines = percentile(99.9)(sortedTimes)
-    val fourNines = percentile(99.99)(sortedTimes)
-    val fiveNines = percentile(99.999)(sortedTimes)
-    val sixNines = percentile(99.9999)(sortedTimes)
-
-    println(s"Min (${inferenceMin / 1000000.0} ms per sample)")
-    println(s"Mean (${inferenceMean / 1000000.0} ms per sample)")
-    println(s"Median (${sortedTimes(inferenceTimes.length / 2) / 1000000.0} ms per sample)")
-    println(s"90 Percentile (${oneNine / 1000000.0} ms per sample)")
-    println(s"99 Percentile (${twoNines / 1000000.0} ms per sample)")
-    println(s"99.9 Percentile (${threeNines / 1000000.0} ms per sample)")
-    println(s"99.99 Percentile (${fourNines / 1000000.0} ms per sample)")
-    println(s"99.999 Percentile (${fiveNines / 1000000.0} ms per sample)")
-    println(s"99.9999 Percentile (${sixNines / 1000000.0} ms per sample)")
-    println(s"Max (${inferenceMax / 1000000.0} ms per sample)")
-
-    new PrintWriter("results.csv") {
-      write(sortedTimes.mkString("\n")); close()
-    }
+    inferenceTimes
   }
+
 
   private def makeLeNetDl4JModel() = {
     val conf = new NeuralNetConfiguration.Builder()
@@ -153,53 +158,65 @@ object Main {
       .seed(42) // include a random seed for reproducibility
       .updater(new AMSGrad(0.004)) //specify the updating method and learning rate.
       .list(
-        new DenseLayer.Builder()
-          .nIn(28 * 28)
-          .nOut(768)
-          .activation(Activation.RELU)
-          .weightInit(WeightInit.RELU)
-          .dropOut(1 - 0.2)
-          .build(),
-        new DenseLayer.Builder()
-          .nIn(768)
-          .nOut(nClasses)
-          .activation(Activation.SOFTMAX)
-          .weightInit(WeightInit.XAVIER)
-          .build(),
-        new LossLayer.Builder(LossFunction.MCXENT).build()
-      ).build()
+      new DenseLayer.Builder()
+        .nIn(28 * 28)
+        .nOut(768)
+        .activation(Activation.RELU)
+        .weightInit(WeightInit.RELU)
+        .dropOut(1 - 0.2)
+        .build(),
+      new DenseLayer.Builder()
+        .nIn(768)
+        .nOut(256)
+        .activation(Activation.RELU)
+        .weightInit(WeightInit.RELU)
+        .dropOut(1 - 0.2)
+        .build(),
+      new DenseLayer.Builder()
+        .nIn(256)
+        .nOut(nClasses)
+        .activation(Activation.SOFTMAX)
+        .weightInit(WeightInit.XAVIER)
+        .build(),
+      new LossLayer.Builder(LossFunction.MCXENT).build()
+    ).build()
 
 
     val model = new MultiLayerNetwork(conf)
-    //model.setListeners(new PerformanceListener(1000, true))
     model.init()
-
 
     model
   }
 
-  def collectToArray(dataSetIterator: DataSetIterator): Array[DataSet] = {
-    var ret: List[DataSet] = Nil
-
-    while (dataSetIterator.hasNext) {
-      ret ::= dataSetIterator.next()
-    }
-
-    ret.reverse.toArray
-  }
-
-  private def percentile(p: Double)(seq: Seq[Long]) = {
+  private def percentile(p: Double, seq: Seq[Long]) = {
     assert(seq.min == seq.head && seq.max == seq.last)
 
     val k = math.ceil((seq.length - 1) * (p / 100.0)).toInt
+
     seq(k)
   }
 
   class SimpleArgMaxAdapter extends OutputAdapter[Int] {
-
     override def apply(outputs: INDArray*): Int = {
-        val array = outputs(0)
-        Nd4j.argMax(array, Integer.MAX_VALUE).getDouble(0L).toInt
+
+      //Nd4j.argMax(outputs(0), 0).getDoubleUnsafe(0).toInt
+
+      // Note: the argMax above creates a intermediate 10 element INDArray
+      // outside of a workspace which adds a small amount of garbage that
+      // is easy to avoid with the loop below.
+
+      val array = outputs(0)
+      var max = -1.0
+      var maxIndex = 0L
+
+      for (i <- 0 until 10) {
+        val x = array.getDoubleUnsafe(i)
+        if (x > max) {
+          max = x
+          maxIndex = i
+        }
+      }
+      maxIndex.toInt
     }
   }
 }

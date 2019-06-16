@@ -44,6 +44,7 @@
             <artifactId>nd4j-native-platform</artifactId>
             <version>1.0.0-beta4</version>
         </dependency>
+
         <!--dependency>
             <groupId>org.nd4j</groupId>
             <artifactId>nd4j-cuda-9.2-platform</artifactId>

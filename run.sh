@@ -6,8 +6,8 @@ java \
     -Xms8m \
     -Xmx256m \
     -Xverify:none \
-    -XX:+UseG1GC \
     -XX:+UnlockExperimentalVMOptions \
+    -XX:+UseG1GC \
     -XX:+UseCompressedOops \
     -XX:+UseNUMA \
     -XX:+UseFMA \
