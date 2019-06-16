@@ -96,8 +96,7 @@ def measure_inference(model):
 def percentile(p, seq):
     assert min(seq) == seq[0] and max(seq) == seq[len(seq) - 1]
 
-    k = int(math.ceil((len(seq) - 1) * (p / 100.0)))
-
+    k = int(math.ceil((len(seq) - 1) * (float(p) / 100.0)))
     return seq[k]
 
 if __name__ == '__main__':
@@ -136,11 +135,11 @@ if __name__ == '__main__':
     print("Mean (%f ms per sample)" % (inference_mean * s2ms))
     print("Median (%f ms per sample)" % (inference_median * s2ms))
     print("90 Percentile (%f ms per sample)" % (one_nine * s2ms))
-    print("99 Percentile (%f ms per sample)" % (one_nine * s2ms))
-    print("99.9 Percentile (%f ms per sample)" % (one_nine * s2ms))
-    print("99.99 Percentile (%f ms per sample)" % (one_nine * s2ms))
-    print("99.999 Percentile (%f ms per sample)" % (one_nine * s2ms))
-    print("99.9999 Percentile (%f ms per sample)" % (one_nine * s2ms))
+    print("99 Percentile (%f ms per sample)" % (two_nines * s2ms))
+    print("99.9 Percentile (%f ms per sample)" % (three_nines * s2ms))
+    print("99.99 Percentile (%f ms per sample)" % (four_nines * s2ms))
+    print("99.999 Percentile (%f ms per sample)" % (five_nines * s2ms))
+    print("99.9999 Percentile (%f ms per sample)" % (six_nines * s2ms))
     print("Max (%f ms per sample)" % (inference_max * s2ms))
     print("Average %f inference per second" % (1 / inference_mean))
     print("Took %f seconds for %f inferences (%f inferences per second)" % (
@@ -149,5 +148,5 @@ if __name__ == '__main__':
         float(inference_count) / (end - start)))
 
     out = open("results_keras.csv", "w")
-    out.writelines(map(lambda x: str(x), inference_times))
+    out.writelines(map(lambda x: str(x) + "\n", inference_times))
     out.close()
