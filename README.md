@@ -63,18 +63,18 @@ Measuring inference performance...
 ... GC logs here ...
 
 Measuring inference performance...
-Min (0.040759 ms per sample)
-Mean (0.054871 ms per sample)
-Median (0.051017 ms per sample)
-90 Percentile (0.067636 ms per sample)
-99 Percentile (0.110351 ms per sample)
-99.9 Percentile (0.200953 ms per sample)
-99.99 Percentile (1.069422 ms per sample)
-99.999 Percentile (2.681949 ms per sample)
-99.9999 Percentile (9.501203 ms per sample)
-Max (9.501203 ms per sample)
-Average 18224.56306610049 inferences per second
-Took 55 seconds for 1000000 inferences (18181.81818181818 inferences per second)
+Min (0.043304 ms per sample)
+Mean (0.057155 ms per sample)
+Median (0.053707 ms per sample)
+90 Percentile (0.068776 ms per sample)
+99 Percentile (0.11381 ms per sample)
+99.9 Percentile (0.19192 ms per sample)
+99.99 Percentile (0.568692 ms per sample)
+99.999 Percentile (0.729292 ms per sample)
+99.9999 Percentile (1.130841 ms per sample)
+Max (1.130841 ms per sample)
+Average 17496.282040066486 inferences per second
+Took 57 seconds for 1000000 inferences (17543.859649122805 inferences per second)
 
 ```
 
