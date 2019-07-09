@@ -34,10 +34,9 @@ def make_simple_model():
 
 def make_lenet_model():
     model = Sequential()
-    model.add(Reshape(28, 28, 1))
+    model.add(Reshape((28, 28, 1), input_shape=(28 * 28 * 1,)))
     model.add(Conv2D(32, kernel_size=(3, 3),
-                     activation='relu',
-                     input_shape=(28, 28, 1)))
+                     activation='relu'))
     model.add(Conv2D(64, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
@@ -101,6 +100,7 @@ def percentile(p, seq):
 
 if __name__ == '__main__':
     model = make_simple_model()
+    #model = make_lenet_model()
 
     print("Using model:")
     print(model.summary())

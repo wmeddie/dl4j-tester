@@ -208,7 +208,7 @@ object Main {
 
       // Note: the argMax above creates a intermediate 10 element INDArray
       // outside of a workspace which adds a small amount of garbage that
-      // is easy to avoid with the loop below.
+      // is easy to avoid with the loop below. Not a huge difference though.
 
       val array = outputs(0)
       var max = -1.0
