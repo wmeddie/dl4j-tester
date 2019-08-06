@@ -80,7 +80,7 @@ def measure_inference(model):
 
     for _ in range(100):
         model.predict(zero)
-    for i in range(inference_count):
+    for _ in range(inference_count):
         start = monotonic()
         a = model.predict(zero)
         result = np.argmax(a)

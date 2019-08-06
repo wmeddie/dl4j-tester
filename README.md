@@ -22,6 +22,8 @@ uncomment the commented out `nd4j-cuda-9.2-platform` and
 `deeplearning4j-cuda-9.2` dependencies in pom.xml and change the 
 cuda version if necessary from 9.2 to either 9.0 or 10.0.
 
+If you want to use cuda on linux but are building on a Mac.  Install
+Docker and use the build-linux.sh script.
 
 ## Running
 

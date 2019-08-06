@@ -45,17 +45,6 @@
             <version>1.0.0-beta4</version>
         </dependency>
 
-        <!--dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-cuda-9.2-platform</artifactId>
-            <version>1.0.0-beta4</version>
-        </dependency>
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-cuda-9.2</artifactId>
-            <version>1.0.0-beta4</version>
-        </dependency-->
-
         <!-- If you don't have CUDA installed also use the following dependency. -->
         <!--dependency>
             <groupId>org.bytedeco.javacpp-presets</groupId>
@@ -65,6 +54,23 @@
         </dependency-->
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>cross-cuda-build</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.nd4j</groupId>
+                    <artifactId>nd4j-cuda-9.2-platform</artifactId>
+                    <version>1.0.0-beta4</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.deeplearning4j</groupId>
+                    <artifactId>deeplearning4j-cuda-9.2</artifactId>
+                    <version>1.0.0-beta4</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
     <build>
         <plugins>
             <plugin>
@@ -80,6 +86,9 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <args>
+                        <arg>-nobootcp</arg>
+                    </args>
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>
             </plugin>
