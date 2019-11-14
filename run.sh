@@ -10,7 +10,6 @@ java \
     -XX:+UseG1GC \
     -XX:+UseCompressedOops \
     -XX:+UseNUMA \
-    -XX:+UseFMA \
     -XX:MaxGCPauseMillis=3 \
     -XX:+DisableExplicitGC \
     -XX:+AlwaysPreTouch \
